@@ -412,31 +412,39 @@ function parseInput(text) {
       parseEquip(content, result);
     }
 
-    // 예약일시
-    if (/예약일시/.test(t)) {
-      const m = t.match(/(\d{4})-(\d{2})-(\d{2})/);
-      if (m) {
-        const d = new Date(m[1] + '-' + m[2] + '-' + m[3]);
-        const days = ['일','월','화','수','목','금','토'];
-        result.month = parseInt(m[2]) + '';
-        result.day   = parseInt(m[3]) + '';
-        result.dow   = days[d.getDay()];
-      }
-    }
+    // 예약일시 — 아무것도 안 함 (사용일시에서 날짜 파싱)
 
-    // 사용일시 → 대여 시작 시간 (빈 줄 건너뛰며 HH:MM 탐색)
+    // 사용일시 → 날짜(월/일/요일) + 대여 시작 시간 (빈 줄 건너뛰며 탐색)
     if (/사용일시/.test(t)) {
-      const tm = t.match(/(\d{1,2}:\d{2})/);
-      if (tm) {
-        result.lendTime = tm[1];
-      } else {
-        let j = i + 1;
-        while (j < lines.length && j <= i + 4) {
-          const nl = lines[j].trim();
-          const ntm = nl.match(/(\d{1,2}:\d{2})/);
-          if (ntm) { result.lendTime = ntm[1]; break; }
-          j++;
+      // 현재 줄 + 이후 줄을 합쳐서 날짜/시간 추출
+      let j = i + 1;
+      while (j < lines.length && j <= i + 4) {
+        const nl = lines[j].trim();
+        if (!nl) { j++; continue; }
+        // 날짜 파싱: YYYY-MM-DD
+        if (!result.month) {
+          const dm = nl.match(/(\d{4})-(\d{2})-(\d{2})/);
+          if (dm) {
+            const d = new Date(dm[1] + '-' + dm[2] + '-' + dm[3]);
+            const days = ['일','월','화','수','목','금','토'];
+            result.month = parseInt(dm[2]) + '';
+            result.day   = parseInt(dm[3]) + '';
+            result.dow   = days[d.getDay()];
+          }
         }
+        // 시간 파싱: HH:MM
+        if (!result.lendTime) {
+          const ntm = nl.match(/(\d{1,2}:\d{2})/);
+          if (ntm) result.lendTime = ntm[1];
+        }
+        // 날짜+시간 모두 찾으면 중단
+        if (result.month && result.lendTime) break;
+        j++;
+      }
+      // 같은 줄에 시간이 있는 경우도 처리
+      if (!result.lendTime) {
+        const tm = t.match(/(\d{1,2}:\d{2})/);
+        if (tm) result.lendTime = tm[1];
       }
     }
 
@@ -535,7 +543,7 @@ function generate() {
   if (!text) { errEl.textContent='예약 내역을 입력해주세요.'; errEl.classList.add('show'); return; }
 
   const data = parseInput(text);
-  if (!data.month) { errEl.textContent='* 예약일시 항목을 찾을 수 없습니다.'; errEl.classList.add('show'); return; }
+  if (!data.month) { errEl.textContent='* 사용일시 항목을 찾을 수 없습니다.'; errEl.classList.add('show'); return; }
 
   document.getElementById('logWrap').classList.add('show');
 
