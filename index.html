@@ -1277,6 +1277,14 @@ function clearOverlay() {
 }
 
 function parseInput(text) {
+  // 모바일 복붙 정규화: 줄끝 통일, 불줄바꿈 공백→일반 공백, 제로폭 문자 제거, 전각→반각
+  text = text
+    .replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+    .replace(/[​‌‍﻿]/g, '')
+    .replace(/ /g, ' ')
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFF10 + 0x30))
+    .replace(/：/g, ':').replace(/～/g, '~').replace(/－/g, '-');
+
   const result = { month:'', day:'', dow:'', floor:'', equipment:{}, memo:[], lender:'', lendTime:'', imacFloor:'' };
   const lines = text.split('\n');
   let imacFloorHint = '';
@@ -1292,18 +1300,31 @@ function parseInput(text) {
       if (t.includes('외부반출')) { result.isExternal = true; }
     }
 
-    if (/^(\*\s*)?장비\s/.test(t)) {
-      const content = t.replace(/^\*?\s*장비\s*/, '').trim();
-      const imacMatch = content.match(/아이맥\(([34])층\)/);
-      if (imacMatch) imacFloorHint = imacMatch[1] + '층';
-      parseEquip(content, result);
+    if (/^(\*\s*)?장비(\s|$)/.test(t)) {
+      let content = t.replace(/^\*?\s*장비\s*/, '').trim();
+      // 모바일: "장비" 단독 줄 → 다음 비어있지 않은 줄에서 장비 목록 읽기
+      if (!content) {
+        for (let j = i + 1; j < lines.length && j <= i + 5; j++) {
+          const nl = lines[j].trim();
+          if (!nl) continue;
+          if (/^(아이디|연락처|이름|예약자|시설|예약일시|사용일시|메모)/.test(nl)) break;
+          content = nl;
+          break;
+        }
+      }
+      if (content) {
+        const imacMatch = content.match(/아이맥\(([34])층\)/);
+        if (imacMatch) imacFloorHint = imacMatch[1] + '층';
+        parseEquip(content, result);
+      }
     }
 
     if (/사용일시/.test(t)) {
-      let j = i + 1;
-      while (j < lines.length && j <= i + 4) {
-        const nl = lines[j].trim();
-        if (!nl) { j++; continue; }
+      // 사용일시와 날짜가 같은 줄에 있는 경우 (모바일 복붙 시 발생)
+      const sameLine = t.replace(/사용일시\s*[:：]?\s*/, '');
+      const candidates = [sameLine, ...Array.from({length: 4}, (_, k) => (lines[i + 1 + k] || '').trim())];
+      for (const nl of candidates) {
+        if (!nl) continue;
         if (!result.month) {
           const dm = nl.match(/(\d{4})-(\d{2})-(\d{2})/);
           if (dm) {
@@ -1338,15 +1359,11 @@ function parseInput(text) {
           }
         }
         if (result.month && result.lendTime) break;
-        j++;
-      }
-      if (!result.lendTime) {
-        const tm = t.match(/(\d{1,2}:\d{2})/);
-        if (tm) result.lendTime = tm[1];
       }
     }
 
-    if (/^이름$/.test(t)) {
+    // "이름" 줄 감지: 단독 줄이거나 콜론/공백 뒤에 값이 오는 경우 모두 처리
+    if (/^이름\s*[:：]?\s*$/.test(t)) {
       let j = i + 1;
       while (j < lines.length) {
         const nextLine = lines[j].trim();
@@ -1356,7 +1373,7 @@ function parseInput(text) {
         break;
       }
     }
-    const nameInline = t.match(/^이름[\s\t]+(.+)$/);
+    const nameInline = t.match(/^이름[\s\t:：]+(.+)$/);
     if (nameInline) result.lender = nameInline[1].trim();
 
     if (/^(\*\s*)?메모/.test(t)) {
