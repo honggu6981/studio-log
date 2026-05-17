@@ -1385,7 +1385,7 @@ function generate() {
   if (!text) { errEl.textContent='예약 내역을 입력해주세요.'; errEl.classList.add('show'); return; }
 
   const data = parseInput(text);
-  if (data.isExternal) { errEl.textContent='외부반출은 위의 외부반출 일지 탭을 사용해주세요.'; errEl.classList.add('show'); return; }
+  if (data.isExternal && currentMode !== 'external') { errEl.textContent='외부반출은 위의 외부반출 일지 탭을 사용해주세요.'; errEl.classList.add('show'); return; }
   if (!data.month) { errEl.textContent='* 사용일시 항목을 찾을 수 없습니다.'; errEl.classList.add('show'); return; }
 
   // 이미지 설정 — src 교체 후 onload 타이밍 버그 방지
