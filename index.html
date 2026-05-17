@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>스튜디오 일지 v28</title>
+<title>스튜디오 일지 v29</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { max-width: 100%; overflow-x: hidden; }
 body {
   font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   background: #e8e8e8; min-height: 100vh; padding: 20px;
@@ -131,6 +132,24 @@ body {
 
 
 
+@media (max-width: 920px) {
+  body { padding: 10px; }
+  .sheet-container {
+    transform-origin: top left;
+  }
+  .log-wrap {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 640px) {
+  body { padding: 8px; }
+  .input-area { padding: 12px; }
+  .plan-form-grid { grid-template-columns: 1fr; }
+  .equip-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  input, select, textarea { max-width: 100%; }
+}
+
 @media print {
   body { background: white; padding: 0; margin: 0; }
   .input-area { display: none !important; }
@@ -153,19 +172,23 @@ body {
   background: #222; color: #fff; border-color: #222;
 }
 
+
 /* ── 2타임 작업 계획서 입력 폼 ── */
 .plan-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 20px;
   margin-top: 12px;
+  width: 100%;
+  min-width: 0;
 }
-.plan-field { display: flex; flex-direction: column; gap: 4px; }
+.plan-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .plan-field label { font-size: 12px; font-weight: 600; color: #444; }
 .plan-field input,
 .plan-field select {
   padding: 7px 10px; border: 1.5px solid #ccc; border-radius: 6px;
   font-size: 13px; font-family: 'Noto Sans KR', sans-serif;
+  min-width: 0;
 }
 .plan-field input:focus,
 .plan-field select:focus { outline: none; border-color: #555; }
@@ -289,7 +312,32 @@ body {
   #extPlanWrap { display: block !important; }
   #extPlanSheet { box-shadow: none; padding: 28mm 18mm 8mm 18mm; }
 }
+
+.download-bar {
+  max-width: 880px;
+  margin: 0 auto 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 4px;
+}
+.btn-img-download {
+  padding: 9px 18px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1.5px solid #a5d6a7;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+}
+.btn-img-download:hover { background: #c8e6c9; }
+@media print {
+  .download-bar { display: none !important; }
+}
 </style>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -369,8 +417,8 @@ body {
       <div class="plan-field">
         <label>대여일시</label>
         <div style="display:flex; gap:6px;">
-          <input type="date" id="ep_rentDate_d" style="flex:1;">
-          <select id="ep_rentDate_t" style="width:90px;">
+          <input type="date" id="ep_rentDate_d" style="flex:1; min-width:0;">
+          <select id="ep_rentDate_t" style="width:90px; flex-shrink:0;">
             <option value="">시간</option>
             <option value="09:00">09:00</option>
             <option value="13:00">13:00</option>
@@ -388,8 +436,8 @@ body {
       <div class="plan-field">
         <label>반납일시</label>
         <div style="display:flex; gap:6px;">
-          <input type="date" id="ep_returnDate_d" style="flex:1;">
-          <select id="ep_returnDate_t" style="width:90px;">
+          <input type="date" id="ep_returnDate_d" style="flex:1; min-width:0;">
+          <select id="ep_returnDate_t" style="width:90px; flex-shrink:0;">
             <option value="">시간</option>
             <option value="09:00">09:00</option>
             <option value="13:00">13:00</option>
@@ -406,7 +454,14 @@ body {
       </div>
       <div class="plan-field">
         <label>사용 목적</label>
-        <input type="text" id="ep_purpose" placeholder="예) 포트폴리오 촬영">
+        <select id="ep_purpose_sel" onchange="onEpPurposeChange()" style="width:100%;padding:8px 10px;border:1.5px solid #d0d0d0;border-radius:8px;font-size:13px;font-family:inherit;color:#222;background:#fff;">
+          <option value="">-- 선택 --</option>
+          <option value="졸작">졸작</option>
+          <option value="포트폴리오 촬영">포트폴리오 촬영</option>
+          <option value="과제">과제</option>
+          <option value="__direct__">직접입력</option>
+        </select>
+        <input type="text" id="ep_purpose" placeholder="사용 목적을 입력하세요" style="display:none;margin-top:6px;width:100%;padding:8px 10px;border:1.5px solid #d0d0d0;border-radius:8px;font-size:13px;font-family:inherit;color:#222;">
       </div>
       <div class="plan-field plan-field-full">
         <label>사용 장소</label>
@@ -438,6 +493,11 @@ body {
 
   <!-- 2타임 작업 계획서 입력 패널 -->
   <div id="planPanel" style="display:none;">
+    <div style="background:#f0f7ff;border-left:3px solid #4a90d9;padding:8px 12px;border-radius:4px;margin-bottom:12px;font-size:12px;color:#333;line-height:1.7;">
+      <b>⚡ 자동화 안내</b><br>
+      • <b>대여 시작 시간</b> 선택 시 → 반납 시각·타임 테이블 자동 계산 (슬롯 2개 = 8시간 기준)<br>
+      • <b>⚡ 자동화</b> 버튼 → 예시 데이터 전체 입력 후 반납·타임 테이블까지 자동 생성
+    </div>
     <div class="plan-form-grid">
       <div class="plan-field">
         <label>대여자 — 학년</label>
@@ -451,8 +511,8 @@ body {
       <div class="plan-field">
         <label>대여일시</label>
         <div style="display:flex; gap:6px;">
-          <input type="date" id="p_rentDate_d" style="flex:1;">
-          <select id="p_rentDate_t" style="width:90px;">
+          <input type="date" id="p_rentDate_d" style="flex:1; min-width:0;">
+          <select id="p_rentDate_t" style="width:90px; flex-shrink:0;">
             <option value="">시간</option>
             <option value="09:00">09:00</option>
             <option value="13:00">13:00</option>
@@ -470,8 +530,8 @@ body {
       <div class="plan-field">
         <label>반납일시</label>
         <div style="display:flex; gap:6px;">
-          <input type="date" id="p_returnDate_d" style="flex:1;">
-          <select id="p_returnDate_t" style="width:90px;">
+          <input type="date" id="p_returnDate_d" style="flex:1; min-width:0;">
+          <select id="p_returnDate_t" style="width:90px; flex-shrink:0;">
             <option value="">시간</option>
             <option value="09:00">09:00</option>
             <option value="13:00">13:00</option>
@@ -488,11 +548,24 @@ body {
       </div>
       <div class="plan-field">
         <label>사용 목적</label>
-        <input type="text" id="p_purpose" placeholder="예) 포트폴리오 촬영">
+        <select id="p_purpose_sel" onchange="onPurposeChange()" style="width:100%;padding:8px 10px;border:1.5px solid #d0d0d0;border-radius:8px;font-size:13px;font-family:inherit;color:#222;background:#fff;">
+          <option value="">-- 선택 --</option>
+          <option value="졸작">졸작</option>
+          <option value="포트폴리오 촬영">포트폴리오 촬영</option>
+          <option value="과제">과제</option>
+          <option value="__direct__">직접입력</option>
+        </select>
+        <input type="text" id="p_purpose" placeholder="사용 목적을 입력하세요" style="display:none;margin-top:6px;width:100%;padding:8px 10px;border:1.5px solid #d0d0d0;border-radius:8px;font-size:13px;font-family:inherit;color:#222;">
       </div>
       <div class="plan-field">
         <label>사용 장소</label>
-        <input type="text" id="p_location" placeholder="예) 스튜디오 C7-411">
+        <select id="p_location_sel" onchange="onLocationChange()" style="width:100%;padding:8px 10px;border:1.5px solid #d0d0d0;border-radius:8px;font-size:13px;font-family:inherit;color:#222;background:#fff;">
+          <option value="">-- 선택 --</option>
+          <option value="스튜디오 C7-411">스튜디오 C7-411</option>
+          <option value="스튜디오 C7-312">스튜디오 C7-312</option>
+          <option value="__direct__">직접입력</option>
+        </select>
+        <input type="text" id="p_location" placeholder="사용 장소를 입력하세요" style="display:none;margin-top:6px;width:100%;padding:8px 10px;border:1.5px solid #d0d0d0;border-radius:8px;font-size:13px;font-family:inherit;color:#222;">
       </div>
       <div class="plan-field">
         <label>2타임 작업 사유</label>
@@ -521,6 +594,7 @@ body {
     </div>
     <div class="btns">
       <button class="btn-go" onclick="generatePlan()">✨ 계획서 생성</button>
+      <button class="btn-sample" onclick="loadSamplePlan()">⚡ 자동화</button>
       <button class="btn-reset" onclick="resetPlan()">초기화</button>
       <button class="btn-print" onclick="window.print()">🖨️ 인쇄</button>
     </div>
@@ -530,6 +604,9 @@ body {
 </div>
 
 <div class="log-wrap" id="logWrap">
+  <div class="download-bar" id="logDownloadBar">
+    <button class="btn-img-download" onclick="downloadSheetImage()">📥 이미지 다운로드</button>
+  </div>
   <div class="sheet-container" id="sheetContainer">
     <img class="sheet-bg" src="" id="bgImg" alt="일지">
     <div class="overlay" id="overlay"></div>
@@ -538,11 +615,17 @@ body {
 
 <!-- 2타임 작업 계획서 출력 -->
 <div class="plan-wrap" id="planWrap">
+  <div class="download-bar">
+    <button class="btn-img-download" onclick="downloadElementImage('planSheet', '2타임작업계획서')">📥 이미지 다운로드</button>
+  </div>
   <div class="plan-sheet" id="planSheet"></div>
 </div>
 
 <!-- 외부반출 계획서 출력 -->
 <div class="plan-wrap" id="extPlanWrap" style="position:relative;">
+  <div class="download-bar">
+    <button class="btn-img-download" onclick="downloadElementImage('extPlanSheet', '외부반출계획서')">📥 이미지 다운로드</button>
+  </div>
   <div class="plan-sheet" id="extPlanSheet" style="position:relative;"></div>
 </div>
 
@@ -1400,9 +1483,10 @@ function generate() {
   if (sameImage) {
     // 같은 이미지가 이미 로드돼 있음 — 바로 다시 그리기
     drawAll(data);
+    applyMobileScale();
   } else {
     bgImg.dataset.mode = currentMode;
-    bgImg.onload = () => drawAll(data);
+    bgImg.onload = () => { drawAll(data); applyMobileScale(); };
     bgImg.src = targetSrc;
   }
 
@@ -1538,6 +1622,10 @@ function resetPlan() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const purSel = document.getElementById('p_purpose_sel');
+  if (purSel) { purSel.value = ''; document.getElementById('p_purpose').style.display = 'none'; }
+  const locSel = document.getElementById('p_location_sel');
+  if (locSel) { locSel.value = ''; document.getElementById('p_location').style.display = 'none'; }
   resetEquipPickerP();
   document.getElementById('planWrap').classList.remove('show');
   document.getElementById('err').classList.remove('show');
@@ -1550,9 +1638,23 @@ function resetExtPlan() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const epSel = document.getElementById('ep_purpose_sel');
+  if (epSel) { epSel.value = ''; document.getElementById('ep_purpose').style.display = 'none'; }
   resetEquipPicker();
   document.getElementById('extPlanWrap').classList.remove('show');
   document.getElementById('err').classList.remove('show');
+}
+
+function onEpPurposeChange() {
+  const sel = document.getElementById('ep_purpose_sel');
+  const inp = document.getElementById('ep_purpose');
+  if (sel.value === '__direct__') {
+    inp.style.display = 'block';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
 }
 
 function generateExtPlan() {
@@ -1561,7 +1663,10 @@ function generateExtPlan() {
   const rentDate  = [document.getElementById('ep_rentDate_d').value, document.getElementById('ep_rentDate_t').value].filter(Boolean).join(' ');
   const retDate   = [document.getElementById('ep_returnDate_d').value, document.getElementById('ep_returnDate_t').value].filter(Boolean).join(' ');
   const coworker  = document.getElementById('ep_coworker').value.trim();
-  const purpose   = document.getElementById('ep_purpose').value.trim();
+  const epPurposeSel = document.getElementById('ep_purpose_sel');
+  const purpose   = (epPurposeSel.value === '__direct__' || epPurposeSel.value === '')
+                    ? document.getElementById('ep_purpose').value.trim()
+                    : epPurposeSel.value;
   const location  = document.getElementById('ep_location').value.trim();
   const equipment = document.getElementById('ep_equipment').value.trim();
   const submitDateEP = document.getElementById('ep_submitDate').value;
@@ -1606,10 +1711,11 @@ function generateExtPlan() {
 
   if (bgImg.dataset.mode === 'extplan' && bgImg.complete && bgImg.naturalWidth > 0) {
     drawExtPlan();
+    applyMobileScale();
   } else {
     bgImg.onload = null;
     bgImg.dataset.mode = 'extplan';
-    bgImg.onload = drawExtPlan;
+    bgImg.onload = () => { drawExtPlan(); applyMobileScale(); };
     bgImg.src = EXTPLAN_IMG;
   }
 
@@ -1630,8 +1736,10 @@ function generatePlan() {
   const rentDate  = [document.getElementById('p_rentDate_d').value, document.getElementById('p_rentDate_t').value].filter(Boolean).join(' ');
   const retDate   = [document.getElementById('p_returnDate_d').value, document.getElementById('p_returnDate_t').value].filter(Boolean).join(' ');
   const coworker  = document.getElementById('p_coworker').value.trim();
-  const purpose   = document.getElementById('p_purpose').value.trim();
-  const location  = document.getElementById('p_location').value.trim();
+  const purposeSel = document.getElementById('p_purpose_sel').value;
+  const purpose   = (purposeSel === '__direct__' || purposeSel === '') ? document.getElementById('p_purpose').value.trim() : purposeSel;
+  const locationSel = document.getElementById('p_location_sel').value;
+  const location  = (locationSel === '__direct__' || locationSel === '') ? document.getElementById('p_location').value.trim() : locationSel;
   const reason    = document.getElementById('p_reason').value.trim();
   const equipment = document.getElementById('p_equipment').value.trim();
   const timetable = document.getElementById('p_timetable').value.trim();
@@ -1689,10 +1797,11 @@ function generatePlan() {
 
   if (bgImg.dataset.mode === 'twotim' && bgImg.complete && bgImg.naturalWidth > 0) {
     drawPlan();
+    applyMobileScale();
   } else {
     bgImg.onload = null;
     bgImg.dataset.mode = 'twotim';
-    bgImg.onload = drawPlan;
+    bgImg.onload = () => { drawPlan(); applyMobileScale(); };
     bgImg.src = TWOTIM_IMG;
   }
 
@@ -1739,6 +1848,110 @@ function loadSample() {
   }
 }
 
+function loadSamplePlan() {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+  set('p_grade',        '4학년');
+  set('p_rentDate_d',   tomorrowStr);
+  set('p_rentDate_t',   '21:00');
+  set('p_reason',       '복잡한 세트 구성으로 추가 시간 필요');
+  set('p_submitDate',   tomorrowStr);
+
+  // 사용 목적 select
+  const purSel = document.getElementById('p_purpose_sel');
+  if (purSel) { purSel.value = '포트폴리오 촬영'; document.getElementById('p_purpose').style.display = 'none'; }
+
+  // 사용 장소 select
+  const locSel = document.getElementById('p_location_sel');
+  if (locSel) { locSel.value = '스튜디오 C7-411'; document.getElementById('p_location').style.display = 'none'; }
+
+  autoPlanReturnTime();
+}
+
+function onPurposeChange() {
+  const sel = document.getElementById('p_purpose_sel');
+  const inp = document.getElementById('p_purpose');
+  if (sel.value === '__direct__') {
+    inp.style.display = 'block';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+}
+function onLocationChange() {
+  const sel = document.getElementById('p_location_sel');
+  const inp = document.getElementById('p_location');
+  if (sel.value === '__direct__') {
+    inp.style.display = 'block';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+}
+
+// ── 2타임 자동 계산 ──
+const TWOTIM_MAP = {
+  '09:00': { retTime: '17:00', dayOffset: 0 },
+  '13:00': { retTime: '21:00', dayOffset: 0 },
+  '17:00': { retTime: '01:00', dayOffset: 1 },
+  '21:00': { retTime: '05:00', dayOffset: 1 },
+  '01:00': { retTime: '09:00', dayOffset: 0 },
+  '05:00': { retTime: '13:00', dayOffset: 0 },
+};
+
+const TWOTIM_SCHEDULE = [
+  [0, '라이팅 세팅'],
+  [1, '헤어 메이크업'],
+  [2, '촬영'],
+  [4, '라이팅 세팅'],
+  [5, '의상 체인지'],
+  [6, '헤어 메이크업'],
+  [7, '촬영'],
+];
+
+function addHoursToTime(timeStr, hours) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const total = (h + hours) % 24;
+  return String(total).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function addDaysToDate(dateStr, days) {
+  if (!dateStr || !days) return dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function autoPlanReturnTime() {
+  const startTime = document.getElementById('p_rentDate_t').value;
+  const startDate = document.getElementById('p_rentDate_d').value;
+  if (!startTime) return;
+
+  const map = TWOTIM_MAP[startTime];
+  if (!map) return;
+
+  document.getElementById('p_returnDate_t').value = map.retTime;
+  if (startDate) {
+    document.getElementById('p_returnDate_d').value = addDaysToDate(startDate, map.dayOffset);
+  }
+
+  const lines = TWOTIM_SCHEDULE.map(([h, label]) => addHoursToTime(startTime, h) + ' ' + label);
+  document.getElementById('p_timetable').value = lines.join('\n');
+}
+
+document.getElementById('p_rentDate_t').addEventListener('change', autoPlanReturnTime);
+document.getElementById('p_rentDate_d').addEventListener('change', function() {
+  if (document.getElementById('p_rentDate_t').value) autoPlanReturnTime();
+});
+
 (function setDateMins() {
   const today = new Date().toISOString().split('T')[0];
   ['ep_rentDate_d','ep_returnDate_d','ep_submitDate',
@@ -1747,6 +1960,80 @@ function loadSample() {
     if (el) el.min = today;
   });
 })();
+
+function applyMobileScale() {
+  const container = document.getElementById('sheetContainer');
+  const wrap = document.getElementById('logWrap');
+  if (!container || !wrap) return;
+  const vw = window.innerWidth;
+  const SHEET_WIDTH = 880;
+  const BODY_PAD = vw < 920 ? 20 : 40; // body padding (10px or 20px each side)
+  if (vw < 920) {
+    const scale = (vw - BODY_PAD) / SHEET_WIDTH;
+    container.style.transform = `scale(${scale})`;
+    // transform 은 레이아웃을 바꾸지 않아서 높이를 수동 보정
+    const naturalH = container.offsetHeight;
+    wrap.style.height = (naturalH * scale) + 'px';
+    wrap.style.overflow = 'hidden';
+  } else {
+    container.style.transform = '';
+    wrap.style.height = '';
+    wrap.style.overflow = '';
+  }
+}
+
+window.addEventListener('resize', applyMobileScale);
+
+// logWrap이 show 클래스를 받을 때 자동으로 스케일 적용
+(function patchLogWrapShow() {
+  const wrap = document.getElementById('logWrap');
+  if (!wrap) return;
+  const orig = wrap.classList.add.bind(wrap.classList);
+  const observer = new MutationObserver(() => {
+    if (wrap.classList.contains('show')) {
+      setTimeout(applyMobileScale, 50);
+    }
+  });
+  observer.observe(wrap, { attributes: true, attributeFilter: ['class'] });
+})();
+
+// ── 이미지 다운로드 ──────────────────────────────────────────────
+async function downloadSheetImage() {
+  const el = document.getElementById('sheetContainer');
+  const bar = document.getElementById('logDownloadBar');
+  const origTransform = el.style.transform;
+  el.style.transform = '';
+  bar.style.display = 'none';
+  try {
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, allowTaint: true, logging: false });
+    const link = document.createElement('a');
+    const mode = document.getElementById('bgImg').dataset.mode || 'log';
+    const modeLabel = mode === 'external' ? '외부반출일지' : mode === 'extplan' ? '외부반출일지' : mode === 'twotim' ? '2타임일지' : '스튜디오일지';
+    const date = new Date().toISOString().slice(0,10);
+    link.download = `${modeLabel}_${date}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    el.style.transform = origTransform;
+    bar.style.display = '';
+  }
+}
+
+async function downloadElementImage(elementId, label) {
+  const el = document.getElementById(elementId);
+  const bar = el.parentElement.querySelector('.download-bar');
+  if (bar) bar.style.display = 'none';
+  try {
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, allowTaint: true, logging: false });
+    const link = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    link.download = `${label}_${date}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    if (bar) bar.style.display = '';
+  }
+}
 
 </script>
 </body>
